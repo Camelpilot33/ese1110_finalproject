@@ -10,7 +10,7 @@ export type Room = {
   capacity: number;
 };
 
-/** One Obsv sensor node (QT Py ESP32-C3 + PIR) mounted in a room. */
+/** One Obsv sensor node (ESP32-C6-DevKitC-1 + HC-SR501 PIR) mounted in a room. */
 export type Device = {
   id: string;
   roomId: string;

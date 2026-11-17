@@ -1,0 +1,8 @@
+{
+  "rooms": [
+    { "id": "agh-204", "name": "AGH 204", "floor": 2, "capacity": 6 }
+  ],
+  "devices": [
+    { "id": "obsv-56c614", "roomId": "agh-204" }
+  ]
+}
