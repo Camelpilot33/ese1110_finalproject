@@ -3,7 +3,8 @@
 //   - Connects to Wi-Fi (reconnects on its own).
 //   - Watches the PIR on PIR_PIN and shows it on the onboard RGB LED
 //     (red = motion, dim green = idle, blue = Wi-Fi connecting).
-//   - Reports to the Obsv server over HTTPS (when SERVER_URL is set):
+//   - Reports to the Obsv server over HTTPS or HTTP, following the
+//     scheme in SERVER_URL (when it is set):
 //       POST {SERVER_URL}/api/events  {deviceId, type, rssi, firmware}
 //     "heartbeat" every HEARTBEAT_MS, "motion" when the PIR goes high and
 //     every MOTION_REPEAT_MS while it stays high. The server timestamps
@@ -36,6 +37,7 @@ uint32_t lastWifiAttempt = 0;
 uint32_t lastStatus = 0;
 
 bool reporting = false;
+bool useTls = false;
 String deviceId;
 uint32_t lastHeartbeat = 0;
 uint32_t lastMotionSent = 0;
@@ -93,15 +95,19 @@ String makeDeviceId() {
 bool sendEvent(const char* type) {
   if (!wifiUp()) return false;
 
+  // https:// URLs go over TLS; http:// (e.g. a laptop on the same network
+  // during testing) goes in the clear, token included.
   WiFiClientSecure tls;
+  WiFiClient plain;
   // TODO: pin the host's root CA instead. Without it the link is encrypted
   // but the board does not check who it is talking to.
   tls.setInsecure();
+  WiFiClient& client = useTls ? static_cast<WiFiClient&>(tls) : plain;
 
   HTTPClient http;
   http.setConnectTimeout(5000);
   http.setTimeout(5000);
-  if (!http.begin(tls, String(SERVER_URL) + "/api/events")) return false;
+  if (!http.begin(client, String(SERVER_URL) + "/api/events")) return false;
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", String("Bearer ") + DEVICE_TOKEN);
 
@@ -165,8 +171,10 @@ void setup() {
   WiFi.mode(WIFI_STA);
   deviceId = makeDeviceId();
   reporting = strlen(SERVER_URL) > 0;
+  useTls = strncmp(SERVER_URL, "https://", 8) == 0;
   Serial.printf("[node] id=%s mac=%s\n", deviceId.c_str(), WiFi.macAddress().c_str());
-  Serial.printf("[node] server=%s\n", reporting ? SERVER_URL : "(none: serial only)");
+  Serial.printf("[node] server=%s%s\n", reporting ? SERVER_URL : "(none: serial only)",
+                reporting && !useTls ? "  (plain HTTP: not encrypted)" : "");
   WiFi.onEvent(onWifiEvent);
   startWifi();
 

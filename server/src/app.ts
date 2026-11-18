@@ -85,10 +85,17 @@ function dayStart(t: number, n = 0): number {
   return d.getTime();
 }
 
-export function createApp(db: Db, config: Config, opts: AppOptions) {
+export function createApp(db: Db, initialConfig: Config, opts: AppOptions) {
   const now = opts.now ?? Date.now;
-  const roomOf = new Map(config.devices.map((d) => [d.id, d.roomId]));
-  const roomIds = new Set(config.rooms.map((r) => r.id));
+  let config = initialConfig;
+  let roomOf = new Map<string, string>();
+  let roomIds = new Set<string>();
+  function setConfig(next: Config) {
+    config = next;
+    roomOf = new Map(next.devices.map((d) => [d.id, d.roomId]));
+    roomIds = new Set(next.rooms.map((r) => r.id));
+  }
+  setConfig(initialConfig);
 
   function snapshot(days: number): Snapshot {
     const t = now();
@@ -148,7 +155,7 @@ export function createApp(db: Db, config: Config, opts: AppOptions) {
     return { id, roomId: b.roomId, start, end };
   }
 
-  return async function handle(req: IncomingMessage, res: ServerResponse) {
+  async function handle(req: IncomingMessage, res: ServerResponse) {
     const url = new URL(req.url ?? '/', 'http://localhost');
     const path = url.pathname.replace(/\/+$/, '') || '/';
     try {
@@ -196,5 +203,8 @@ export function createApp(db: Db, config: Config, opts: AppOptions) {
       console.error(err);
       return send(res, 500, { error: 'Internal error' });
     }
-  };
+  }
+
+  /** Swap in a new rooms/devices config (e.g. after rooms.json is edited). */
+  return Object.assign(handle, { setConfig });
 }

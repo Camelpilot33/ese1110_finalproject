@@ -9,6 +9,9 @@ storage is Node's built-in SQLite. No runtime dependencies.
 
 ## Run
 
+The easy way, from the repo root: `scripts/start.sh` (creates `.env` with
+tokens, starts this server and the app, prints the addresses). By hand:
+
 ```bash
 npm install        # dev tools only (typescript, @types/node)
 DEVICE_TOKEN=... ADMIN_TOKEN=... npm start
@@ -38,8 +41,12 @@ been heard from in the last 3 minutes. Motions less than 10 minutes apart are
 merged into one occupied stretch; a stretch whose last motion was under
 10 minutes ago is still open (`end: null`).
 
-New sensor: add `{ "id": "obsv-xxxxxx", "roomId": "..." }` to
-`config/rooms.json`. The id is printed on the board's serial output at boot.
+New sensor: plug it in and run `scripts/flash.sh` from the repo root. It
+flashes the board, asks which room it is in and writes the assignment to
+`config/rooms.json`. To do it by hand, add `{ "id": "obsv-xxxxxx", "roomId": "..." }`
+there; the id is printed on the board's serial output at boot. A running
+server reloads `rooms.json` when it changes (a file with errors is ignored
+and logged).
 
 ## Checks
 
